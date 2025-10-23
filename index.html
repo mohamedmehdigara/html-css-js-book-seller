@@ -56,6 +56,20 @@
             -ms-overflow-style: none; /* IE and Edge */
             scrollbar-width: none; /* Firefox */
         }
+
+        /* Filter Drawer transition for mobile */
+        #filterDrawer {
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            max-height: 0;
+            overflow: hidden;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        #filterDrawer.open {
+            max-height: 500px; /* Arbitrary large size */
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col transition-colors duration-300">
@@ -73,8 +87,8 @@
             <div class="flex-1 max-w-lg mx-4 hidden sm:block">
                 <div class="relative">
                     <input type="text" id="searchInput" placeholder="Search by title, author, or category..."
-                           class="w-full p-2 pl-10 rounded-full border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-                           onkeyup="updateBookDisplay()">
+                            class="w-full p-2 pl-10 rounded-full border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                            onkeyup="resetPaginationAndDisplay()">
                     <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"></i>
                 </div>
             </div>
@@ -82,14 +96,14 @@
             <!-- Action Buttons -->
             <div class="flex items-center space-x-3">
                 
-                <!-- Dark Mode Toggle (NEW) -->
+                <!-- Dark Mode Toggle -->
                 <button id="darkModeToggle" onclick="toggleDarkMode()" 
                         class="p-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-full transition duration-150 shadow-md transform hover:scale-105">
                     <i data-lucide="moon" class="w-6 h-6 dark:hidden"></i>
                     <i data-lucide="sun" class="w-6 h-6 hidden dark:block"></i>
                 </button>
 
-                <!-- Wishlist Button (NEW) -->
+                <!-- Wishlist Button -->
                 <button onclick="showMessage('Wishlist functionality coming soon! For now, the counter works.', 'info')"
                         class="relative p-2 bg-pink-600 hover:bg-pink-700 text-white rounded-full transition duration-150 shadow-lg transform hover:scale-105">
                     <i data-lucide="heart" class="w-6 h-6"></i>
@@ -112,53 +126,69 @@
         <h1 class="text-4xl font-extrabold text-gray-900 mb-6 border-b-2 pb-2 border-indigo-200 dark:border-indigo-700 transition-colors duration-300">Featured Books</h1>
 
         <!-- Controls: Filters and Sorting -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-4 bg-white rounded-xl shadow-lg transition-colors duration-300">
-
+        <div class="p-4 bg-white rounded-xl shadow-lg transition-colors duration-300 mb-6">
+            
+            <!-- Filter Header (Visible on Mobile) -->
+            <div class="flex justify-between items-center md:hidden mb-4">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Filter & Sort</h2>
+                <button onclick="toggleFilterDrawer()" id="filterToggleButton"
+                        class="p-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg shadow-md flex items-center gap-1 transition duration-150">
+                    <span class="font-medium">Filters</span>
+                    <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-300"></i>
+                </button>
+            </div>
+            
             <!-- Mobile Search Bar -->
-            <div class="md:hidden w-full">
+            <div class="md:hidden w-full mb-4">
                 <div class="relative">
                     <input type="text" id="mobileSearchInput" placeholder="Search books..."
-                           class="w-full p-3 pl-12 rounded-xl border-2 border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                            class="w-full p-3 pl-12 rounded-xl border-2 border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                            onkeyup="resetPaginationAndDisplay()">
                     <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400"></i>
                 </div>
             </div>
 
-            <!-- Filters Group -->
-            <div class="flex flex-col sm:flex-row flex-wrap gap-4 w-full md:w-auto">
-                <!-- Category Filter Dropdown -->
-                <div class="flex items-center gap-2">
-                    <label for="categoryFilter" class="text-gray-700 font-medium whitespace-nowrap dark:text-gray-300">Category:</label>
-                    <select id="categoryFilter" onchange="updateBookDisplay()"
-                            class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 w-full sm:w-auto">
-                        <!-- Options populated by JS -->
-                    </select>
-                </div>
+            <!-- Filter Drawer (Toggles on Mobile, always open on Desktop) -->
+            <div id="filterDrawer" class="md:max-h-full md:p-0 md:overflow-visible md:open">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <!-- Filters Group -->
+                    <div class="flex flex-col sm:flex-row flex-wrap gap-4 w-full md:w-auto">
+                        <!-- Category Filter Dropdown -->
+                        <div class="flex items-center gap-2">
+                            <label for="categoryFilter" class="text-gray-700 font-medium whitespace-nowrap dark:text-gray-300">Category:</label>
+                            <select id="categoryFilter" onchange="resetPaginationAndDisplay()"
+                                    class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 w-full sm:w-auto">
+                                <!-- Options populated by JS -->
+                            </select>
+                        </div>
 
-                <!-- Sort By Dropdown -->
-                <div class="flex items-center gap-2">
-                    <label for="sortSelect" class="text-gray-700 font-medium whitespace-nowrap dark:text-gray-300">Sort By:</label>
-                    <select id="sortSelect" onchange="updateBookDisplay()"
-                            class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 w-full sm:w-auto">
-                        <option value="default">Default (None)</option>
-                        <option value="title-asc">Title (A-Z)</option>
-                        <option value="price-asc">Price (Low)</option>
-                        <option value="price-desc">Price (High)</option>
-                        <option value="rating-desc">Rating (High)</option>
-                    </select>
-                </div>
-            </div>
+                        <!-- Sort By Dropdown -->
+                        <div class="flex items-center gap-2">
+                            <label for="sortSelect" class="text-gray-700 font-medium whitespace-nowrap dark:text-gray-300">Sort By:</label>
+                            <select id="sortSelect" onchange="resetPaginationAndDisplay()"
+                                    class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 w-full sm:w-auto">
+                                <option value="default">Default (None)</option>
+                                <option value="title-asc">Title (A-Z)</option>
+                                <option value="price-asc">Price (Low)</option>
+                                <option value="price-desc">Price (High)</option>
+                                <option value="rating-desc">Rating (High)</option>
+                            </select>
+                        </div>
+                    </div>
 
-            <!-- Price Range Filter (NEW) -->
-            <div class="flex flex-col gap-2 w-full md:w-auto">
-                <label class="text-gray-700 font-medium dark:text-gray-300">Price Range:</label>
-                <div class="flex gap-2 items-center">
-                    <input type="number" id="minPriceFilter" placeholder="Min" value="0" min="0"
-                           onchange="updateBookDisplay()"
-                           class="w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
-                    <span class="text-gray-500 dark:text-gray-400">-</span>
-                    <input type="number" id="maxPriceFilter" placeholder="Max" value="50" max="100"
-                           onchange="updateBookDisplay()"
-                           class="w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                    <!-- Price Range Filter -->
+                    <div class="flex flex-col gap-2 w-full md:w-auto">
+                        <label class="text-gray-700 font-medium dark:text-gray-300">Price Range:</label>
+                        <div class="flex gap-2 items-center">
+                            <input type="number" id="minPriceFilter" placeholder="Min" value="0" min="0"
+                                onchange="resetPaginationAndDisplay()"
+                                class="w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                            <span class="text-gray-500 dark:text-gray-400">-</span>
+                            <input type="number" id="maxPriceFilter" placeholder="Max" value="50" max="100"
+                                onchange="resetPaginationAndDisplay()"
+                                class="w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -168,11 +198,33 @@
             <!-- Books will be injected here by JavaScript -->
         </div>
 
+        <!-- Load More Button -->
+        <div id="loadMoreContainer" class="text-center mt-8">
+            <button onclick="loadMoreBooks()" id="loadMoreButton"
+                    class="py-3 px-6 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-200 transform hover:scale-105 flex items-center gap-2 mx-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                Load More Books
+            </button>
+        </div>
+
         <!-- No Results Message -->
         <div id="noResults" class="hidden text-center py-20">
             <i data-lucide="telescope" class="w-16 h-16 mx-auto text-gray-400 mb-4"></i>
             <p class="text-xl text-gray-600 font-semibold dark:text-gray-300">No books found matching your criteria.</p>
             <button onclick="clearAllFilters()" class="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">Clear Filters</button>
+        </div>
+
+        <hr class="mt-12 mb-8 border-gray-300 dark:border-gray-600">
+        
+        <!-- Recently Viewed Section (NEW) -->
+        <div id="recentlyViewedSection" class="mt-12 hidden">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4 dark:text-white flex items-center">
+                <i data-lucide="history" class="w-6 h-6 mr-2 text-indigo-600"></i>
+                Recently Viewed
+            </h2>
+            <div id="recentlyViewedContainer" class="flex overflow-x-auto scroll-hidden space-x-4 pb-4">
+                <!-- Recently viewed cards injected here -->
+            </div>
         </div>
 
     </main>
@@ -287,12 +339,23 @@
             { id: 8, title: "Culinary Arts Masterclass", author: "Henry Wong", price: 28.90, imageUrl: "https://placehold.co/300x450/fb923c/ffffff?text=Culinary", category: "Cookbook", rating: 4.9, description: "A visually stunning cookbook that elevates home cooking to fine dining. Featuring step-by-step techniques and 100 original recipes from a Michelin-starred chef." },
             { id: 9, title: "The Great War", author: "Ivy Stone", price: 31.50, imageUrl: "https://placehold.co/300x450/6b7280/ffffff?text=War+History", category: "History", rating: 4.1, description: "A comprehensive and moving account of World War I, utilizing newly discovered letters and diaries to provide a personal perspective on the global conflict." },
             { id: 10, title: "Future Cities", author: "Jack Frost", price: 24.99, imageUrl: "https://placehold.co/300x450/1f2937/ffffff?text=Future+Cities", category: "Science Fiction", rating: 4.3, description: "Examines the societal, technological, and architectural challenges of creating sustainable, vertical metropolises in the next century. A visionary look at urban planning." },
+            // Added 5 more books to make pagination visible
+            { id: 11, title: "The Nebulous Star", author: "Zachary Moon", price: 16.50, imageUrl: "https://placehold.co/300x450/f97316/ffffff?text=Nebulous+Star", category: "Fantasy", rating: 4.4, description: "A sweeping epic set in a galaxy where magic and technology collide, featuring a young heir fighting a tyrannical empire." },
+            { id: 12, title: "Machine Learning in JS", author: "Yara S.", price: 55.00, imageUrl: "https://placehold.co/300x450/6d28d9/ffffff?text=ML+in+JS", category: "Technology", rating: 4.6, description: "An in-depth guide to building and deploying machine learning models directly in the browser using modern JavaScript frameworks." },
+            { id: 13, title: "Mediterranean Diet", author: "Xavier R.", price: 21.00, imageUrl: "https://placehold.co/300x450/14b8a6/ffffff?text=Diet+Book", category: "Cookbook", rating: 4.7, description: "Simple, delicious recipes and meal plans based on the health benefits of the traditional Mediterranean lifestyle." },
+            { id: 14, title: "Victorian Secrets", author: "Willow T.", price: 13.00, imageUrl: "https://placehold.co/300x450/dc2626/ffffff?text=Victorian", category: "Mystery", rating: 3.8, description: "A classic whodunit set in the foggy back alleys of 19th-century London, featuring an intrepid female journalist." },
+            { id: 15, title: "Echoes of Time", author: "Victor A.", price: 29.99, imageUrl: "https://placehold.co/300x450/059669/ffffff?text=Echoes+Time", category: "History", rating: 4.5, description: "A dual timeline novel intertwining the life of a modern historian with a soldier's diary from World War II." }
         ];
 
         // --- STATE & INITIALIZATION ---
-        // Cart and Wishlist state stored in localStorage
         let cart = JSON.parse(localStorage.getItem('bookNookCart')) || [];
         let wishlist = JSON.parse(localStorage.getItem('bookNookWishlist')) || [];
+        let recentlyViewed = JSON.parse(localStorage.getItem('bookNookRecentlyViewed')) || [];
+
+        // NEW: Pagination State
+        const BOOKS_PER_PAGE = 8;
+        let displayLimit = BOOKS_PER_PAGE;
+        let allFilteredBooks = []; // Holds the full list after search/filter/sort
 
         const bookGrid = document.getElementById('bookGrid');
         const cartCountElement = document.getElementById('cartCount');
@@ -303,6 +366,8 @@
         const messageBox = document.getElementById('messageBox');
         const minPriceFilter = document.getElementById('minPriceFilter');
         const maxPriceFilter = document.getElementById('maxPriceFilter');
+        const filterDrawer = document.getElementById('filterDrawer');
+        const filterToggleButton = document.getElementById('filterToggleButton');
 
         /**
          * Initializes the application: loads icons, renders books, updates the cart UI, and sets up filters.
@@ -310,33 +375,91 @@
         window.onload = function() {
             lucide.createIcons();
             
-            // 1. Initialize Dark Mode
             initializeDarkMode();
 
-            // 2. Set min/max filter boundaries based on data
+            // Set min/max filter boundaries based on data
             const allPrices = BOOKS_DATA.map(b => b.price);
-            const minPrice = Math.min(...allPrices);
             const maxPrice = Math.max(...allPrices);
             
-            minPriceFilter.value = 0; // Start at 0
-            maxPriceFilter.value = Math.ceil(maxPrice); // Max price set to highest book price rounded up
+            minPriceFilter.value = 0; 
+            maxPriceFilter.value = Math.ceil(maxPrice);
             maxPriceFilter.max = Math.ceil(maxPrice);
             
-            // 3. Render UI
+            // Render UI
             renderCategoryFilter(); 
-            updateBookDisplay();    
+            updateBookDisplay();    
             updateCartAndWishlistUI();
+            renderRecentViews(); // NEW: Render recently viewed section
 
             // Sync mobile and desktop search inputs (existing logic)
             document.getElementById('searchInput').addEventListener('input', (e) => {
                 document.getElementById('mobileSearchInput').value = e.target.value;
+                resetPaginationAndDisplay();
             });
             document.getElementById('mobileSearchInput').addEventListener('input', (e) => {
                 document.getElementById('searchInput').value = e.target.value;
+                resetPaginationAndDisplay();
             });
         }
 
-        // --- NEW: DARK MODE LOGIC ---
+        // --- NEW: FILTER DRAWER LOGIC (For Mobile Responsiveness) ---
+        function toggleFilterDrawer() {
+            filterDrawer.classList.toggle('open');
+            const icon = filterToggleButton.querySelector('i');
+            icon.classList.toggle('rotate-180');
+        }
+
+        // --- NEW: RECENTLY VIEWED LOGIC ---
+
+        /**
+         * Tracks a book ID when it is viewed, stores it in localStorage, and re-renders the list.
+         */
+        function trackRecentView(bookId) {
+            // Remove the ID if it already exists to move it to the front
+            recentlyViewed = recentlyViewed.filter(id => id !== bookId);
+            // Add to the front
+            recentlyViewed.unshift(bookId);
+            // Keep only the last 5 viewed books
+            if (recentlyViewed.length > 5) {
+                recentlyViewed = recentlyViewed.slice(0, 5);
+            }
+            localStorage.setItem('bookNookRecentlyViewed', JSON.stringify(recentlyViewed));
+            renderRecentViews();
+        }
+
+        /**
+         * Renders the horizontal scroll section of recently viewed books.
+         */
+        function renderRecentViews() {
+            const container = document.getElementById('recentlyViewedContainer');
+            const section = document.getElementById('recentlyViewedSection');
+            
+            if (recentlyViewed.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+
+            const recentBooks = recentlyViewed
+                .map(id => BOOKS_DATA.find(book => book.id === id))
+                .filter(book => book); // Remove any null/undefined entries
+
+            container.innerHTML = recentBooks.map(book => `
+                <div onclick="openQuickViewModal(${book.id})" class="min-w-[150px] max-w-[150px] bg-white dark:bg-gray-700 rounded-lg shadow-md p-3 flex-shrink-0 transition-shadow duration-200 hover:shadow-xl cursor-pointer">
+                    <img src="${book.imageUrl}" alt="${book.title}" 
+                        onerror="this.onerror=null;this.src='https://placehold.co/300x450/6b7280/ffffff?text=No+Cover';"
+                        class="w-full h-36 object-cover rounded-md mb-2">
+                    <h4 class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">${book.title}</h4>
+                    <p class="text-xs text-gray-500 line-clamp-1">by ${book.author}</p>
+                    <span class="text-md font-bold text-indigo-600 mt-1 block">${formatCurrency(book.price)}</span>
+                </div>
+            `).join('');
+            
+            lucide.createIcons();
+        }
+
+        // --- DARK MODE LOGIC ---
 
         function initializeDarkMode() {
             const isDark = localStorage.getItem('darkMode') === 'true';
@@ -410,381 +533,384 @@
                 starsHtml += `<i data-lucide="star" class="w-4 h-4 text-gray-300"></i>`;
             }
 
-            return `<div class="flex items-center space-x-0.5">${starsHtml}<span class="ml-1 text-sm font-semibold text-gray-700 dark:text-gray-300">(${rating})</span></div>`;
+            // --- COMPLETING THE CUT-OFF FUNCTION ---
+            return `<div class="flex items-center space-x-0.5">${starsHtml}<span class="ml-1 text-sm font-medium text-gray-600 dark:text-gray-400">(${rating.toFixed(1)}/5)</span></div>`;
         }
+
+
+        // --- FILTER RENDERING ---
 
         function renderCategoryFilter() {
             const categories = [...new Set(BOOKS_DATA.map(book => book.category))];
-            const categoryFilterElement = document.getElementById('categoryFilter');
-
-            let optionsHtml = '<option value="all">All Categories</option>';
-            optionsHtml += categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            const categoryFilter = document.getElementById('categoryFilter');
             
-            categoryFilterElement.innerHTML = optionsHtml;
+            categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+            
+            categories.sort().forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categoryFilter.appendChild(option);
+            });
         }
 
-        // --- RENDERING FUNCTIONS ---
+
+        // --- FILTER, SORT, AND DISPLAY LOGIC (PAGINATED) ---
+        
+        /**
+         * Helper function to get the current search term from the visible input.
+         */
+        function getCurrentSearchValue() {
+            const desktopValue = document.getElementById('searchInput').value;
+            const mobileValue = document.getElementById('mobileSearchInput').value;
+            // Use the non-empty one, prioritizing desktop if both are non-empty (though they should be synced)
+            return (desktopValue || mobileValue || '').toLowerCase();
+        }
 
         /**
-         * Renders the book cards in the main grid, including a wishlist button.
+         * Applies all current filters and sorting to the master list.
          */
-        function renderBookGrid(booksToRender) {
-            bookGrid.innerHTML = booksToRender.map(book => {
-                const isWishlisted = wishlist.includes(book.id);
-                const wishlistIcon = isWishlisted ? 'heart' : 'heart';
-                const wishlistClass = isWishlisted ? 'fill-pink-500 text-pink-500' : 'text-gray-400 hover:text-pink-500';
+        function getFilteredAndSortedBooks() {
+            let filtered = [...BOOKS_DATA];
+            const searchValue = getCurrentSearchValue();
+            const category = document.getElementById('categoryFilter').value;
+            const sortValue = document.getElementById('sortSelect').value;
+            const minPrice = parseFloat(minPriceFilter.value) || 0;
+            const maxPrice = parseFloat(maxPriceFilter.value) || Infinity;
 
-                return `
-                <div class="bg-white dark:bg-gray-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col transform hover:scale-[1.02] cursor-pointer group" >
-                    <!-- Image Placeholder / Click opens Quick View -->
-                    <div onclick="openQuickViewModal(${book.id})" class="relative">
-                        <img src="${book.imageUrl}" alt="${book.title}" class="w-full h-64 object-cover rounded-t-xl group-hover:opacity-80 transition duration-300">
+            // 1. Filter
+            filtered = filtered.filter(book => {
+                const matchesSearch = book.title.toLowerCase().includes(searchValue) || 
+                                      book.author.toLowerCase().includes(searchValue) ||
+                                      book.category.toLowerCase().includes(searchValue);
+                const matchesCategory = category === 'all' || book.category === category;
+                const matchesPrice = book.price >= minPrice && book.price <= maxPrice;
+                
+                return matchesSearch && matchesCategory && matchesPrice;
+            });
+
+            // 2. Sort
+            filtered.sort((a, b) => {
+                if (sortValue === 'title-asc') return a.title.localeCompare(b.title);
+                if (sortValue === 'price-asc') return a.price - b.price;
+                if (sortValue === 'price-desc') return b.price - a.price;
+                if (sortValue === 'rating-desc') return b.rating - a.rating;
+                return 0; // default, no sort
+            });
+
+            return filtered;
+        }
+
+        /**
+         * Renders the current subset of books based on displayLimit.
+         */
+        function updateBookDisplay() {
+            allFilteredBooks = getFilteredAndSortedBooks();
+            
+            // Check for no results
+            const noResults = document.getElementById('noResults');
+            if (allFilteredBooks.length === 0) {
+                bookGrid.innerHTML = '';
+                noResults.classList.remove('hidden');
+                document.getElementById('loadMoreContainer').classList.add('hidden');
+                return;
+            }
+
+            noResults.classList.add('hidden');
+            document.getElementById('loadMoreContainer').classList.remove('hidden');
+
+            // Get the slice of books to display (pagination)
+            const booksToDisplay = allFilteredBooks.slice(0, displayLimit);
+
+            // Render the grid
+            bookGrid.innerHTML = booksToDisplay.map(book => createBookCard(book)).join('');
+            
+            // Update Load More Button state
+            const loadMoreButton = document.getElementById('loadMoreButton');
+            const remainingBooks = allFilteredBooks.length - displayLimit;
+
+            if (remainingBooks <= 0) {
+                loadMoreButton.disabled = true;
+                loadMoreButton.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> That's all the books!`;
+            } else {
+                loadMoreButton.disabled = false;
+                loadMoreButton.innerHTML = `<i data-lucide="rotate-ccw" class="w-5 h-5"></i> Load ${Math.min(BOOKS_PER_PAGE, remainingBooks)} More Books`;
+            }
+            
+            lucide.createIcons();
+        }
+        
+        /**
+         * Generates the HTML card for a single book.
+         */
+        function createBookCard(book) {
+            const isWishlisted = wishlist.includes(book.id);
+            const heartIconClass = isWishlisted ? 'fill-pink-600' : '';
+
+            return `
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 transition-all duration-300 transform hover:shadow-2xl hover:-translate-y-1 group">
+                    <div class="h-48 overflow-hidden rounded-lg mb-4 flex items-center justify-center relative cursor-pointer" onclick="openQuickViewModal(${book.id})">
+                        <img src="${book.imageUrl}" alt="${book.title}" 
+                            onerror="this.onerror=null;this.src='https://placehold.co/300x450/6b7280/ffffff?text=No+Cover';"
+                            class="h-full w-auto object-cover transition-transform duration-300 group-hover:scale-105">
+                        <span class="absolute top-2 left-2 text-xs font-bold text-white bg-indigo-600 px-2 py-1 rounded-full">${book.category}</span>
                     </div>
-                    
-                    <div class="p-4 flex flex-col flex-grow">
-                        <!-- Category and Rating -->
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600">${book.category}</span>
-                            ${renderRatingStars(book.rating)}
-                        </div>
-
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white line-clamp-2" title="${book.title}" onclick="openQuickViewModal(${book.id})">${book.title}</h3>
-                        <p class="text-sm text-gray-500 mt-1 flex-grow">by ${book.author}</p>
-                        
-                        <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-600 flex justify-between items-center">
-                            <span class="text-xl font-extrabold text-indigo-600">${formatCurrency(book.price)}</span>
-                            <!-- Action Buttons -->
-                            <div class="flex space-x-2">
-                                <!-- Wishlist Toggle Button (NEW) -->
-                                <button onclick="event.stopPropagation(); toggleWishlist(${book.id})"
-                                        class="p-2 border border-gray-300 dark:border-gray-500 rounded-full transition duration-150 transform hover:scale-110 ${wishlistClass}">
-                                    <i data-lucide="${wishlistIcon}" class="w-5 h-5"></i>
-                                </button>
-                                <!-- Add to Cart Button -->
-                                <button onclick="event.stopPropagation(); addToCart(${book.id})"
-                                        class="p-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full transition duration-150 transform hover:scale-110 shadow-md">
-                                    <i data-lucide="plus" class="w-5 h-5"></i>
-                                </button>
-                            </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white line-clamp-2 min-h-[3rem]">${book.title}</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">by ${book.author}</p>
+                    <div class="mt-2 mb-3">
+                        ${renderRatingStars(book.rating)}
+                    </div>
+                    <div class="flex justify-between items-center mt-3">
+                        <span class="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">${formatCurrency(book.price)}</span>
+                        <div class="flex space-x-2">
+                            <button onclick="event.stopPropagation(); addToWishlist(${book.id})" 
+                                    class="p-2 bg-pink-100 text-pink-600 rounded-full hover:bg-pink-600 hover:text-white transition duration-150 transform hover:scale-110">
+                                <i data-lucide="heart" class="w-5 h-5 ${heartIconClass}"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); addToCart(${book.id})" 
+                                    class="p-2 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-600 hover:text-white transition duration-150 transform hover:scale-110">
+                                <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
             `;
-            }).join('');
-            lucide.createIcons();
-            document.getElementById('noResults').classList.toggle('hidden', booksToRender.length > 0);
         }
 
-        function renderCartItems() {
-            // ... (Cart rendering logic remains the same)
-            if (cart.length === 0) {
-                cartItemsContainer.innerHTML = `
-                    <div class="text-center py-10">
-                        <i data-lucide="shopping-cart" class="w-12 h-12 mx-auto text-gray-400 mb-4"></i>
-                        <p class="text-xl text-gray-600 font-medium dark:text-gray-300">Your cart is empty.</p>
-                        <p class="text-sm text-gray-500 mt-1">Start adding some great books!</p>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            cartItemsContainer.innerHTML = cart.map(item => `
-                <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
-                    <img src="${item.imageUrl}" alt="${item.title}" class="w-16 h-20 object-cover rounded-md mr-4">
-                    <div class="flex-grow">
-                        <h4 class="font-semibold text-gray-900 dark:text-white line-clamp-1">${item.title}</h4>
-                        <p class="text-sm text-gray-500">by ${item.author}</p>
-                        <p class="font-bold text-indigo-600">${formatCurrency(item.price)}</p>
-                    </div>
-                    <div class="flex items-center space-x-2 ml-4">
-                        <button onclick="updateQuantity(${item.id}, -1)"
-                                class="p-1 border border-gray-300 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-150">
-                            <i data-lucide="minus" class="w-4 h-4"></i>
-                        </button>
-                        <span class="text-lg font-medium w-6 text-center text-gray-900 dark:text-white">${item.quantity}</span>
-                        <button onclick="updateQuantity(${item.id}, 1)"
-                                class="p-1 border border-gray-300 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-150">
-                            <i data-lucide="plus" class="w-4 h-4"></i>
-                        </button>
-                        <button onclick="removeFromCart(${item.id})"
-                                class="ml-4 p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-800 rounded-full transition duration-150">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-            lucide.createIcons();
+        function loadMoreBooks() {
+            displayLimit += BOOKS_PER_PAGE;
+            updateBookDisplay();
+            // Scroll to the new items (optional, but good UX)
+            bookGrid.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
 
-        /**
-         * Updates the cart and NEW wishlist counts in the header.
-         */
-        function updateCartAndWishlistUI() {
-            // Cart UI update
-            const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-            const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            cartCountElement.textContent = totalCartCount;
-            cartTotalElement.textContent = formatCurrency(totalPrice);
-
-            // Wishlist UI update
-            wishlistCountElement.textContent = wishlist.length;
-
-            // Persist state to local storage
-            localStorage.setItem('bookNookCart', JSON.stringify(cart));
-            localStorage.setItem('bookNookWishlist', JSON.stringify(wishlist));
+        function resetPaginationAndDisplay() {
+            displayLimit = BOOKS_PER_PAGE;
+            updateBookDisplay();
         }
 
-        // --- NEW: WISHLIST LOGIC ---
-
-        function toggleWishlist(bookId) {
-            const index = wishlist.indexOf(bookId);
-            const book = BOOKS_DATA.find(b => b.id === bookId);
-
-            if (index > -1) {
-                // Remove from wishlist
-                wishlist.splice(index, 1);
-                showMessage(`'${book.title}' removed from wishlist.`, 'error');
-            } else {
-                // Add to wishlist
-                wishlist.push(bookId);
-                showMessage(`'${book.title}' added to wishlist!`, 'success');
-            }
-            
-            updateCartAndWishlistUI();
-            updateBookDisplay(); // Re-render grid to update heart icon state
-        }
-
-
-        // --- CART LOGIC (Minor change to use new UI update function) ---
-
-        function addToCart(bookId) {
-            const book = BOOKS_DATA.find(b => b.id === bookId);
-            const cartItem = cart.find(item => item.id === bookId);
-
-            if (book) {
-                if (cartItem) {
-                    cartItem.quantity++;
-                    showMessage(`${book.title} quantity updated to ${cartItem.quantity}.`, 'info');
-                } else {
-                    cart.push({ ...book, quantity: 1 });
-                    showMessage(`'${book.title}' added to cart!`, 'success');
-                }
-                updateCartAndWishlistUI();
-                renderCartItems();
-            }
-        }
-
-        function updateQuantity(bookId, delta) {
-            const cartItem = cart.find(item => item.id === bookId);
-            if (!cartItem) return;
-
-            cartItem.quantity += delta;
-
-            if (cartItem.quantity <= 0) {
-                cart = cart.filter(item => item.id !== bookId);
-                showMessage(`'${cartItem.title}' removed from cart.`, 'error');
-            } else {
-                 showMessage(`'${cartItem.title}' quantity changed to ${cartItem.quantity}.`, 'info');
-            }
-
-            updateCartAndWishlistUI();
-            renderCartItems();
-        }
-
-        function removeFromCart(bookId) {
-            const item = cart.find(item => item.id === bookId);
-            if (item) {
-                cart = cart.filter(item => item.id !== bookId);
-                showMessage(`'${item.title}' removed from cart.`, 'error');
-                updateCartAndWishlistUI();
-                renderCartItems();
-            }
-        }
-
-        function checkout() {
-            if (cart.length === 0) {
-                showMessage("Your cart is empty. Please add books to checkout!", 'error');
-                return;
-            }
-
-            const total = cartTotalElement.textContent;
-            cart = [];
-            updateCartAndWishlistUI();
-            renderCartItems();
-            toggleCartModal(false);
-
-            showMessage(`Checkout successful! Your order total was ${total}. Thank you!`, 'success');
-        }
-
-        // --- MODAL CONTROL (Quick View updated to support Wishlist) ---
-
-        function openQuickViewModal(bookId) {
-            const book = BOOKS_DATA.find(b => b.id === bookId);
-            if (!book) return;
-            const isWishlisted = wishlist.includes(book.id);
-
-            // Populate the modal content
-            document.getElementById('qvTitle').textContent = book.title;
-            document.getElementById('qvAuthor').textContent = `by ${book.author}`;
-            document.getElementById('qvPrice').textContent = formatCurrency(book.price);
-            document.getElementById('qvCategory').textContent = book.category;
-            document.getElementById('qvRating').innerHTML = renderRatingStars(book.rating);
-            document.getElementById('qvDescription').textContent = book.description;
-            document.getElementById('qvImage').src = book.imageUrl;
-            document.getElementById('qvImage').alt = book.title;
-            
-            // Set the ID on the Add to Cart button for functionality
-            document.getElementById('qvAddToCartButton').onclick = () => {
-                addToCart(book.id);
-                closeQuickViewModal();
-            };
-
-            // Set the Add to Wishlist button functionality and style
-            const qvWishlistButton = document.getElementById('qvAddToWishlistButton');
-            qvWishlistButton.onclick = () => {
-                toggleWishlist(book.id);
-                // Update the button visually immediately
-                if (wishlist.includes(book.id)) {
-                    qvWishlistButton.classList.add('bg-pink-600', 'text-white');
-                    qvWishlistButton.classList.remove('border-pink-600', 'text-pink-600');
-                } else {
-                    qvWishlistButton.classList.remove('bg-pink-600', 'text-white');
-                    qvWishlistButton.classList.add('border-pink-600', 'text-pink-600');
-                }
-            };
-            
-            // Initial styling for the wishlist button
-            if (isWishlisted) {
-                qvWishlistButton.classList.add('bg-pink-600', 'text-white');
-                qvWishlistButton.classList.remove('border-pink-600', 'text-pink-600');
-            } else {
-                qvWishlistButton.classList.remove('bg-pink-600', 'text-white');
-                qvWishlistButton.classList.add('border-pink-600', 'text-pink-600');
-            }
-
-
-            // Display the modal
-            const modal = document.getElementById('quickViewModal');
-            const modalContent = modal.querySelector('div:not([onclick])');
-
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.add('opacity-100', 'flex');
-                modalContent.classList.remove('scale-95', 'opacity-0');
-                modalContent.classList.add('scale-100', 'opacity-100');
-            }, 10);
-            
-            lucide.createIcons();
-        }
-
-        function closeQuickViewModal() {
-            // ... (Close Quick View logic remains the same)
-            const modal = document.getElementById('quickViewModal');
-            const modalContent = modal.querySelector('div:not([onclick])');
-
-            modalContent.classList.remove('scale-100', 'opacity-100');
-            modalContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                modal.classList.remove('opacity-100', 'flex');
-                modal.classList.add('hidden');
-            }, 300);
-        }
-
-        function toggleCartModal(show) {
-            // ... (Toggle Cart modal logic remains the same)
-            const modalContent = cartModal.querySelector('div:not([onclick])');
-
-            if (show) {
-                renderCartItems();
-                cartModal.classList.remove('hidden');
-                setTimeout(() => {
-                    cartModal.classList.add('opacity-100', 'flex');
-                    modalContent.classList.remove('scale-95', 'opacity-0');
-                    modalContent.classList.add('scale-100', 'opacity-100');
-                }, 10);
-            } else {
-                modalContent.classList.remove('scale-100', 'opacity-100');
-                modalContent.classList.add('scale-95', 'opacity-0');
-                setTimeout(() => {
-                    cartModal.classList.remove('opacity-100', 'flex');
-                    cartModal.classList.add('hidden');
-                }, 300);
-            }
-        }
-        
-        // --- NEW: SEARCH, FILTER, AND SORT LOGIC (Updated to include Price Range Filter) ---
-
-        function updateBookDisplay() {
-            // 1. Get current queries and filters
-            const searchInput = document.getElementById('searchInput').value.toLowerCase();
-            const query = searchInput || document.getElementById('mobileSearchInput').value.toLowerCase();
-            const currentCategory = document.getElementById('categoryFilter').value;
-            const currentSort = document.getElementById('sortSelect').value;
-            
-            // NEW: Price Range Filters
-            const minPrice = parseFloat(minPriceFilter.value) || 0;
-            const maxPrice = parseFloat(maxPriceFilter.value) || Infinity;
-
-            let filteredBooks = BOOKS_DATA;
-
-            // --- 2.1 FILTERING ---
-            
-            // Search Query Filter
-            filteredBooks = filteredBooks.filter(book =>
-                book.title.toLowerCase().includes(query) ||
-                book.author.toLowerCase().includes(query) ||
-                book.category.toLowerCase().includes(query)
-            );
-
-            // Category Filter
-            if (currentCategory !== 'all') {
-                filteredBooks = filteredBooks.filter(book => book.category === currentCategory);
-            }
-            
-            // Price Range Filter (NEW)
-            filteredBooks = filteredBooks.filter(book => {
-                return book.price >= minPrice && book.price <= maxPrice;
-            });
-
-
-            // --- 2.2 SORTING ---
-            if (currentSort !== 'default') {
-                filteredBooks.sort((a, b) => {
-                    if (currentSort === 'price-asc') {
-                        return a.price - b.price;
-                    }
-                    if (currentSort === 'price-desc') {
-                        return b.price - a.price;
-                    }
-                    if (currentSort === 'title-asc') {
-                        return a.title.localeCompare(b.title);
-                    }
-                    if (currentSort === 'rating-desc') {
-                        return b.rating - a.rating;
-                    }
-                    return 0; 
-                });
-            }
-
-            renderBookGrid(filteredBooks);
-        }
-
-        /**
-         * Clears all filters (search, category, sort, and NEW price range) and resets the book grid.
-         */
         function clearAllFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('mobileSearchInput').value = '';
             document.getElementById('categoryFilter').value = 'all';
             document.getElementById('sortSelect').value = 'default';
-            // NEW: Reset price filters
+            // Recalculate max price just in case data changed (though static here)
+            const allPrices = BOOKS_DATA.map(b => b.price);
+            maxPriceFilter.value = Math.ceil(Math.max(...allPrices));
             minPriceFilter.value = 0;
-            maxPriceFilter.value = maxPriceFilter.max; 
+            resetPaginationAndDisplay();
+            showMessage("All filters cleared!", 'info');
+        }
+
+
+        // --- CART & WISHLIST LOGIC ---
+
+        function updateLocalStorage() {
+            localStorage.setItem('bookNookCart', JSON.stringify(cart));
+            localStorage.setItem('bookNookWishlist', JSON.stringify(wishlist));
+        }
+
+        function updateCartAndWishlistUI() {
+            cartCountElement.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+            wishlistCountElement.textContent = wishlist.length;
+            renderCartItems();
+            // Re-render the book grid to update heart icons
+            updateBookDisplay(); 
+        }
+
+        function calculateCartTotal() {
+            return cart.reduce((total, item) => {
+                const book = BOOKS_DATA.find(b => b.id === item.id);
+                return total + (book ? book.price * item.quantity : 0);
+            }, 0);
+        }
+
+        function addToCart(id) {
+            const existingItem = cart.find(item => item.id === id);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ id, quantity: 1 });
+            }
+            updateLocalStorage();
+            updateCartAndWishlistUI();
+            const book = BOOKS_DATA.find(b => b.id === id);
+            showMessage(`${book.title} added to cart! (x${existingItem ? existingItem.quantity + 1 : 1})`, 'success');
+        }
+
+        function removeFromCart(id) {
+            const book = BOOKS_DATA.find(b => b.id === id);
+            cart = cart.filter(item => item.id !== id);
+            updateLocalStorage();
+            updateCartAndWishlistUI();
+            showMessage(`${book ? book.title : 'Item'} removed from cart.`, 'info');
+        }
+
+        function updateCartItemQuantity(id, change) {
+            const item = cart.find(item => item.id === id);
+            if (item) {
+                item.quantity += change;
+                if (item.quantity <= 0) {
+                    removeFromCart(id);
+                } else {
+                    updateLocalStorage();
+                    updateCartAndWishlistUI();
+                }
+            }
+        }
+
+        function addToWishlist(id) {
+            const index = wishlist.indexOf(id);
+            const book = BOOKS_DATA.find(b => b.id === id);
+
+            if (index > -1) {
+                wishlist.splice(index, 1);
+                showMessage(`${book.title} removed from Wishlist.`, 'info');
+            } else {
+                wishlist.push(id);
+                showMessage(`${book.title} added to Wishlist!`, 'success');
+            }
+            updateLocalStorage();
+            updateCartAndWishlistUI();
+        }
+
+        function renderCartItems() {
+            const items = cart.map(item => {
+                const book = BOOKS_DATA.find(b => b.id === item.id);
+                if (!book) return '';
+                const totalPrice = book.price * item.quantity;
+
+                return `
+                    <div class="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-600 last:border-b-0 transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-lg">
+                        <div class="flex items-center space-x-4">
+                            <img src="${book.imageUrl}" alt="${book.title}" 
+                                onerror="this.onerror=null;this.src='https://placehold.co/300x450/6b7280/ffffff?text=No+Cover';"
+                                class="w-16 h-24 object-cover rounded-md shadow-md">
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-900 dark:text-white line-clamp-1">${book.title}</h4>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">by ${book.author}</p>
+                                <p class="text-md font-medium text-indigo-600">${formatCurrency(book.price)} each</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            <!-- Quantity Controls -->
+                            <div class="flex items-center border border-gray-300 rounded-full dark:border-gray-500">
+                                <button onclick="updateCartItemQuantity(${item.id}, -1)" class="p-2 text-gray-500 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-l-full transition">
+                                    <i data-lucide="minus" class="w-4 h-4"></i>
+                                </button>
+                                <span class="px-2 font-semibold text-gray-900 dark:text-white w-6 text-center">${item.quantity}</span>
+                                <button onclick="updateCartItemQuantity(${item.id}, 1)" class="p-2 text-gray-500 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-r-full transition">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+
+                            <!-- Total Price -->
+                            <span class="text-lg font-bold text-gray-900 dark:text-white w-20 text-right hidden sm:block">${formatCurrency(totalPrice)}</span>
+                            
+                            <!-- Remove Button -->
+                            <button onclick="removeFromCart(${item.id})" class="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (items === '') {
+                cartItemsContainer.innerHTML = `
+                    <div class="text-center py-10 text-gray-500 dark:text-gray-400">
+                        <i data-lucide="shopping-cart" class="w-12 h-12 mx-auto mb-3"></i>
+                        <p class="text-xl font-semibold">Your cart is empty!</p>
+                        <p>Time to find some great reads.</p>
+                    </div>
+                `;
+            } else {
+                cartItemsContainer.innerHTML = items;
+            }
+
+            cartTotalElement.textContent = formatCurrency(calculateCartTotal());
+            lucide.createIcons();
+        }
+
+        function toggleCartModal(show) {
+            if (show) {
+                cartModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling background
+                setTimeout(() => {
+                    cartModal.classList.remove('opacity-0');
+                    cartModal.querySelector(':scope > div').classList.remove('scale-95', 'opacity-0');
+                }, 50);
+                renderCartItems();
+            } else {
+                cartModal.classList.add('opacity-0');
+                cartModal.querySelector(':scope > div').classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    cartModal.classList.add('hidden');
+                    document.body.style.overflow = ''; 
+                }, 300);
+            }
+        }
+
+        function openQuickViewModal(id) {
+            const book = BOOKS_DATA.find(b => b.id === id);
+            if (!book) return showMessage('Book details not found.', 'error');
             
-            updateBookDisplay();
+            // Track view
+            trackRecentView(id);
+
+            const modal = document.getElementById('quickViewModal');
+            
+            document.getElementById('qvCategory').textContent = book.category;
+            document.getElementById('qvTitle').textContent = book.title;
+            document.getElementById('qvAuthor').textContent = `by ${book.author}`;
+            document.getElementById('qvPrice').textContent = formatCurrency(book.price);
+            document.getElementById('qvDescription').textContent = book.description;
+            document.getElementById('qvImage').src = book.imageUrl;
+            document.getElementById('qvImage').alt = book.title + ' Cover';
+            document.getElementById('qvRating').innerHTML = renderRatingStars(book.rating);
+
+            // Dynamic button actions
+            document.getElementById('qvAddToCartButton').onclick = () => { addToCart(book.id); closeQuickViewModal(); };
+            document.getElementById('qvAddToWishlistButton').onclick = () => { addToWishlist(book.id); };
+
+            // Update wishlist icon status
+            const heartIcon = document.getElementById('qvAddToWishlistButton').querySelector('i');
+            const isWishlisted = wishlist.includes(book.id);
+            heartIcon.setAttribute('data-lucide', 'heart');
+            heartIcon.classList.toggle('fill-pink-600', isWishlisted);
+            
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; 
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector(':scope > div').classList.remove('scale-95', 'opacity-0');
+            }, 50);
+            
+            lucide.createIcons();
+        }
+
+        function closeQuickViewModal() {
+            const modal = document.getElementById('quickViewModal');
+            modal.classList.add('opacity-0');
+            modal.querySelector(':scope > div').classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        function checkout() {
+            if (cart.length === 0) {
+                showMessage("Your cart is empty! Add items to checkout.", 'error');
+                return;
+            }
+            showMessage(`Processing checkout for total: ${formatCurrency(calculateCartTotal())}. Thanks for shopping!`, 'success');
+            // Clear cart after 'successful' checkout
+            cart = [];
+            updateLocalStorage();
+            toggleCartModal(false);
         }
     </script>
-
 </body>
 </html>
