@@ -43,7 +43,7 @@
                 <div class="relative">
                     <input type="text" id="searchInput" placeholder="Search by title, author, or category..."
                            class="w-full p-2 pl-10 rounded-full border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-                           onkeyup="filterBooks()">
+                           onkeyup="updateBookDisplay()">
                     <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"></i>
                 </div>
             </div>
@@ -60,18 +60,44 @@
     <!-- Main Content Area -->
     <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        <!-- Mobile Search Bar (Visible on small screens) -->
-        <div class="sm:hidden mb-6">
-            <div class="relative">
-                <input type="text" id="mobileSearchInput" placeholder="Search books..."
-                       class="w-full p-3 pl-12 rounded-xl border-2 border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-                       onkeyup="filterBooks()">
-                <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400"></i>
-            </div>
-        </div>
-
         <h1 class="text-4xl font-extrabold text-gray-900 mb-6 border-b-2 pb-2 border-indigo-200">Featured Books</h1>
 
+        <!-- Controls: Mobile Search, Category Filter, and Sorting -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-4 bg-white rounded-xl shadow-lg">
+
+            <!-- Mobile Search Bar (Visible on small screens) -->
+            <div class="md:hidden w-full">
+                <div class="relative">
+                    <input type="text" id="mobileSearchInput" placeholder="Search books..."
+                           class="w-full p-3 pl-12 rounded-xl border-2 border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                           onkeyup="updateBookDisplay()">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400"></i>
+                </div>
+            </div>
+
+            <!-- Category Filter Dropdown -->
+            <div class="flex items-center gap-2">
+                <label for="categoryFilter" class="text-gray-700 font-medium whitespace-nowrap">Category:</label>
+                <select id="categoryFilter" onchange="updateBookDisplay()"
+                        class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 w-full md:w-auto">
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+
+            <!-- Sort By Dropdown -->
+            <div class="flex items-center gap-2">
+                <label for="sortSelect" class="text-gray-700 font-medium whitespace-nowrap">Sort By:</label>
+                <select id="sortSelect" onchange="updateBookDisplay()"
+                        class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 w-full md:w-auto">
+                    <option value="default">Default (None)</option>
+                    <option value="title-asc">Title (A-Z)</option>
+                    <option value="price-asc">Price (Low to High)</option>
+                    <option value="price-desc">Price (High to Low)</option>
+                    <option value="rating-desc">Rating (High to Low)</option>
+                </select>
+            </div>
+        </div>
+        
         <!-- Book Grid -->
         <div id="bookGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             <!-- Books will be injected here by JavaScript -->
@@ -81,7 +107,7 @@
         <div id="noResults" class="hidden text-center py-20">
             <i data-lucide="telescope" class="w-16 h-16 mx-auto text-gray-400 mb-4"></i>
             <p class="text-xl text-gray-600 font-semibold">No books found matching your search criteria.</p>
-            <button onclick="clearSearch()" class="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">Clear Search</button>
+            <button onclick="clearSearch()" class="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">Clear Filters</button>
         </div>
 
     </main>
@@ -94,7 +120,7 @@
         </div>
     </footer>
 
-    <!-- Shopping Cart Modal -->
+    <!-- Shopping Cart Modal (Existing) -->
     <div id="cartModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden transition-opacity duration-300 items-center justify-center" onclick="if(event.target.id === 'cartModal') toggleCartModal(false)">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col transition-transform duration-300 transform scale-95 opacity-0">
             <!-- Modal Header -->
@@ -125,6 +151,49 @@
             </div>
         </div>
     </div>
+    
+    <!-- NEW: Book Quick View Modal -->
+    <div id="quickViewModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden transition-opacity duration-300 items-center justify-center" onclick="if(event.target.id === 'quickViewModal') closeQuickViewModal()">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col md:flex-row transition-transform duration-300 transform scale-95 opacity-0 overflow-hidden">
+            
+            <!-- Close Button -->
+            <button onclick="closeQuickViewModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition z-10 p-2 bg-white rounded-full">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+
+            <!-- Book Image (Left Side) -->
+            <div class="md:w-1/3 bg-gray-100 p-8 flex items-center justify-center">
+                <img id="qvImage" src="" alt="Book Cover" class="w-full h-auto max-h-96 object-contain rounded-lg shadow-lg">
+            </div>
+
+            <!-- Details (Right Side) -->
+            <div class="md:w-2/3 p-8 overflow-y-auto scroll-hidden">
+                <span id="qvCategory" class="text-sm font-semibold uppercase tracking-wider text-indigo-600 mb-1 block"></span>
+                <h2 id="qvTitle" class="text-4xl font-extrabold text-gray-900 mb-2">Book Title</h2>
+                <p id="qvAuthor" class="text-xl text-gray-600 mb-4">by Author Name</p>
+
+                <!-- Rating and Price Row -->
+                <div class="flex items-center justify-between border-t border-b py-4 mb-6">
+                    <div id="qvRating">
+                        <!-- Stars injected here -->
+                    </div>
+                    <span id="qvPrice" class="text-3xl font-extrabold text-indigo-600"></span>
+                </div>
+
+                <!-- Description -->
+                <h3 class="text-lg font-bold text-gray-900 mb-2">Description</h3>
+                <p id="qvDescription" class="text-gray-700 leading-relaxed mb-8"></p>
+
+                <!-- Action Button -->
+                <button id="qvAddToCartButton"
+                        class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-semibold rounded-lg transition duration-150 shadow-lg transform hover:scale-[1.01] flex items-center justify-center gap-2">
+                    <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                    Add to Cart
+                </button>
+            </div>
+
+        </div>
+    </div>
 
     <!-- Custom Message Box (Replaces alert/confirm) -->
     <div id="messageBox" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[60] p-4 rounded-lg shadow-xl text-white opacity-0 transition-all duration-300 -translate-y-full" style="min-width: 300px;">
@@ -137,16 +206,16 @@
     <script>
         // --- DATA ---
         const BOOKS_DATA = [
-            { id: 1, title: "The Quantum Enigma", author: "Anya Sharma", price: 19.99, imageUrl: "https://placehold.co/300x450/4f46e5/ffffff?text=Quantum+Enigma", category: "Science Fiction" },
-            { id: 2, title: "Silent Echoes", author: "Ben Carter", price: 14.50, imageUrl: "https://placehold.co/300x450/10b981/ffffff?text=Silent+Echoes", category: "Thriller" },
-            { id: 3, title: "Garden of Whispers", author: "Clara Diaz", price: 22.00, imageUrl: "https://placehold.co/300x450/f59e0b/ffffff?text=Whispers", category: "Romance" },
-            { id: 4, title: "Historical Almanac 2024", author: "David King", price: 35.75, imageUrl: "https://placehold.co/300x450/ef4444/ffffff?text=Almanac", category: "History" },
-            { id: 5, title: "Coding Secrets: JavaScript", author: "Eva Lu", price: 49.99, imageUrl: "https://placehold.co/300x450/374151/ffffff?text=Coding+Secrets", category: "Technology" },
-            { id: 6, title: "The Last Key", author: "Frank Ocean", price: 11.99, imageUrl: "https://placehold.co/300x450/9333ea/ffffff?text=Last+Key", category: "Mystery" },
-            { id: 7, title: "Beyond the Horizon", author: "Grace Lee", price: 17.20, imageUrl: "https://placehold.co/300x450/06b6d4/ffffff?text=Horizon", category: "Adventure" },
-            { id: 8, title: "Culinary Arts Masterclass", author: "Henry Wong", price: 28.90, imageUrl: "https://placehold.co/300x450/fb923c/ffffff?text=Culinary", category: "Cookbook" },
-            { id: 9, title: "The Great War", author: "Ivy Stone", price: 31.50, imageUrl: "https://placehold.co/300x450/6b7280/ffffff?text=War+History", category: "History" },
-            { id: 10, title: "Future Cities", author: "Jack Frost", price: 24.99, imageUrl: "https://placehold.co/300x450/1f2937/ffffff?text=Future+Cities", category: "Science Fiction" },
+            { id: 1, title: "The Quantum Enigma", author: "Anya Sharma", price: 19.99, imageUrl: "https://placehold.co/300x450/4f46e5/ffffff?text=Quantum+Enigma", category: "Science Fiction", rating: 4.5, description: "A groundbreaking exploration into the nature of reality and consciousness, blending theoretical physics with ancient philosophy. Winner of the Leda Prize for Speculative Fiction." },
+            { id: 2, title: "Silent Echoes", author: "Ben Carter", price: 14.50, imageUrl: "https://placehold.co/300x450/10b981/ffffff?text=Silent+Echoes", category: "Thriller", rating: 4.2, description: "When a retired detective finds a cryptic message hidden in his house, he is pulled back into a cold case that threatens to expose a decades-old government conspiracy." },
+            { id: 3, title: "Garden of Whispers", author: "Clara Diaz", price: 22.00, imageUrl: "https://placehold.co/300x450/f59e0b/ffffff?text=Whispers", category: "Romance", rating: 4.8, description: "Set in 1920s Paris, a struggling artist and a wealthy botanist find unexpected love amidst the vibrant, chaotic beauty of the city's hidden gardens. A tale of forbidden passion." },
+            { id: 4, title: "Historical Almanac 2024", author: "David King", price: 35.75, imageUrl: "https://placehold.co/300x450/ef4444/ffffff?text=Almanac", category: "History", rating: 3.9, description: "The definitive guide to the major events and forgotten stories of the past year, complete with detailed maps, statistics, and expert analysis." },
+            { id: 5, title: "Coding Secrets: JavaScript", author: "Eva Lu", price: 49.99, imageUrl: "https://placehold.co/300x450/374151/ffffff?text=Coding+Secrets", category: "Technology", rating: 4.7, description: "An advanced guide to mastering asynchronous programming, design patterns, and performance optimization in modern JavaScript development. Essential for senior engineers." },
+            { id: 6, title: "The Last Key", author: "Frank Ocean", price: 11.99, imageUrl: "https://placehold.co/300x450/9333ea/ffffff?text=Last+Key", category: "Mystery", rating: 4.0, description: "A thrilling puzzle that begins with an antique key and ends with a cross-country chase to unlock a billionaire's darkest secret. High stakes and non-stop action." },
+            { id: 7, title: "Beyond the Horizon", author: "Grace Lee", price: 17.20, imageUrl: "https://placehold.co/300x450/06b6d4/ffffff?text=Horizon", category: "Adventure", rating: 4.6, description: "A gripping tale of survival on a remote island after a shipwreck, forcing the protagonist to confront not only nature but their own limitations and past traumas." },
+            { id: 8, title: "Culinary Arts Masterclass", author: "Henry Wong", price: 28.90, imageUrl: "https://placehold.co/300x450/fb923c/ffffff?text=Culinary", category: "Cookbook", rating: 4.9, description: "A visually stunning cookbook that elevates home cooking to fine dining. Featuring step-by-step techniques and 100 original recipes from a Michelin-starred chef." },
+            { id: 9, title: "The Great War", author: "Ivy Stone", price: 31.50, imageUrl: "https://placehold.co/300x450/6b7280/ffffff?text=War+History", category: "History", rating: 4.1, description: "A comprehensive and moving account of World War I, utilizing newly discovered letters and diaries to provide a personal perspective on the global conflict." },
+            { id: 10, title: "Future Cities", author: "Jack Frost", price: 24.99, imageUrl: "https://placehold.co/300x450/1f2937/ffffff?text=Future+Cities", category: "Science Fiction", rating: 4.3, description: "Examines the societal, technological, and architectural challenges of creating sustainable, vertical metropolises in the next century. A visionary look at urban planning." },
         ];
 
         // --- STATE & INITIALIZATION ---
@@ -159,14 +228,15 @@
         const messageBox = document.getElementById('messageBox');
 
         /**
-         * Initializes the application: loads icons, renders books, and updates the cart UI.
+         * Initializes the application: loads icons, renders books, updates the cart UI, and sets up filters.
          */
         window.onload = function() {
-            lucide.createIcons(); // Initialize Lucide Icons
-            renderBookGrid(BOOKS_DATA);
+            lucide.createIcons();
+            renderCategoryFilter(); // Populate category dropdown
+            updateBookDisplay();    // Initial render and display
             updateCartUI();
 
-            // Sync mobile and desktop search inputs
+            // Sync mobile and desktop search inputs (existing logic)
             document.getElementById('searchInput').addEventListener('input', (e) => {
                 document.getElementById('mobileSearchInput').value = e.target.value;
             });
@@ -180,13 +250,12 @@
         /**
          * Shows a temporary, non-blocking message box for feedback (replaces alert()).
          * @param {string} message - The message to display.
-         * @param {string} type - 'success' or 'error'.
+         * @param {string} type - 'success', 'error', or 'info'.
          */
         function showMessage(message, type) {
             const iconElement = document.getElementById('messageIcon');
             const textElement = document.getElementById('messageText');
 
-            // Set styles and icon based on type
             let bgColor = '';
             let iconHtml = '';
             if (type === 'success') {
@@ -204,17 +273,14 @@
             iconElement.innerHTML = iconHtml;
             textElement.textContent = message;
 
-            // Show the box with transition
             setTimeout(() => {
                 messageBox.classList.remove('-translate-y-full', 'opacity-0');
             }, 50);
 
-            // Hide the box after 3 seconds
             setTimeout(() => {
                 messageBox.classList.add('-translate-y-full', 'opacity-0');
             }, 3000);
 
-            // Re-create icons after updating innerHTML
             lucide.createIcons();
         }
 
@@ -227,6 +293,46 @@
             return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
         };
 
+        /**
+         * Generates the HTML string for a star rating display.
+         * @param {number} rating - The rating value (e.g., 4.5).
+         * @returns {string} HTML string with Lucide star icons.
+         */
+        function renderRatingStars(rating) {
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 !== 0;
+            let starsHtml = '';
+
+            // Full Stars
+            for (let i = 0; i < fullStars; i++) {
+                starsHtml += `<i data-lucide="star" class="w-4 h-4 text-yellow-500 fill-yellow-500"></i>`;
+            }
+            // Half Star
+            if (halfStar) {
+                starsHtml += `<i data-lucide="star-half" class="w-4 h-4 text-yellow-500 fill-yellow-500"></i>`;
+            }
+            // Empty Stars
+            const emptyStars = 5 - Math.ceil(rating);
+            for (let i = 0; i < emptyStars; i++) {
+                starsHtml += `<i data-lucide="star" class="w-4 h-4 text-gray-300"></i>`;
+            }
+
+            return `<div class="flex items-center space-x-0.5">${starsHtml}<span class="ml-1 text-sm font-semibold text-gray-700">(${rating})</span></div>`;
+        }
+
+        /**
+         * Populates the category filter dropdown with unique categories from BOOKS_DATA.
+         */
+        function renderCategoryFilter() {
+            const categories = [...new Set(BOOKS_DATA.map(book => book.category))];
+            const categoryFilterElement = document.getElementById('categoryFilter');
+
+            let optionsHtml = '<option value="all">All Categories</option>';
+            optionsHtml += categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            
+            categoryFilterElement.innerHTML = optionsHtml;
+        }
+
         // --- RENDERING FUNCTIONS ---
 
         /**
@@ -235,16 +341,23 @@
          */
         function renderBookGrid(booksToRender) {
             bookGrid.innerHTML = booksToRender.map(book => `
-                <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col transform hover:scale-[1.02]">
+                <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col transform hover:scale-[1.02] cursor-pointer" onclick="openQuickViewModal(${book.id})">
                     <!-- Image Placeholder -->
                     <img src="${book.imageUrl}" alt="${book.title}" class="w-full h-64 object-cover">
                     <div class="p-4 flex flex-col flex-grow">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 mb-1">${book.category}</span>
+                        <!-- Category and Rating -->
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600">${book.category}</span>
+                            ${renderRatingStars(book.rating)}
+                        </div>
+
                         <h3 class="text-lg font-bold text-gray-900 line-clamp-2" title="${book.title}">${book.title}</h3>
                         <p class="text-sm text-gray-500 mt-1 flex-grow">by ${book.author}</p>
+                        
                         <div class="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
                             <span class="text-xl font-extrabold text-indigo-600">${formatCurrency(book.price)}</span>
-                            <button onclick="addToCart(${book.id})"
+                            <!-- Stop propagation to prevent Quick View from opening when clicking add to cart -->
+                            <button onclick="event.stopPropagation(); addToCart(${book.id})"
                                     class="p-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full transition duration-150 transform hover:scale-105 shadow-md group">
                                 <i data-lucide="plus" class="w-5 h-5"></i>
                             </button>
@@ -257,7 +370,7 @@
         }
 
         /**
-         * Renders the cart items inside the modal.
+         * Renders the cart items inside the modal (unchanged).
          */
         function renderCartItems() {
             if (cart.length === 0) {
@@ -301,7 +414,7 @@
         }
 
         /**
-         * Updates the cart count in the header and the total in the modal.
+         * Updates the cart count in the header and the total in the modal (unchanged).
          */
         function updateCartUI() {
             const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -314,12 +427,8 @@
             localStorage.setItem('bookNookCart', JSON.stringify(cart));
         }
 
-        // --- CART LOGIC ---
+        // --- CART LOGIC (Unchanged) ---
 
-        /**
-         * Adds a book to the cart or increments its quantity.
-         * @param {number} bookId - The ID of the book to add.
-         */
         function addToCart(bookId) {
             const book = BOOKS_DATA.find(b => b.id === bookId);
             const cartItem = cart.find(item => item.id === bookId);
@@ -337,11 +446,6 @@
             }
         }
 
-        /**
-         * Updates the quantity of a cart item.
-         * @param {number} bookId - The ID of the item.
-         * @param {number} delta - The change in quantity (-1 or 1).
-         */
         function updateQuantity(bookId, delta) {
             const cartItem = cart.find(item => item.id === bookId);
             if (!cartItem) return;
@@ -349,7 +453,6 @@
             cartItem.quantity += delta;
 
             if (cartItem.quantity <= 0) {
-                // If quantity drops to 0 or below, remove the item
                 cart = cart.filter(item => item.id !== bookId);
                 showMessage(`'${cartItem.title}' removed from cart.`, 'error');
             } else {
@@ -360,10 +463,6 @@
             renderCartItems();
         }
 
-        /**
-         * Removes an item completely from the cart.
-         * @param {number} bookId - The ID of the item to remove.
-         */
         function removeFromCart(bookId) {
             const item = cart.find(item => item.id === bookId);
             if (item) {
@@ -374,18 +473,14 @@
             }
         }
 
-        /**
-         * Handles the checkout process.
-         */
         function checkout() {
             if (cart.length === 0) {
                 showMessage("Your cart is empty. Please add books to checkout!", 'error');
                 return;
             }
 
-            // Simulate checkout success
             const total = cartTotalElement.textContent;
-            cart = []; // Clear the cart
+            cart = [];
             updateCartUI();
             renderCartItems();
             toggleCartModal(false);
@@ -393,12 +488,8 @@
             showMessage(`Checkout successful! Your order total was ${total}. Thank you!`, 'success');
         }
 
-        // --- UI / MODAL CONTROL ---
+        // --- UI / MODAL CONTROL (Cart Modal Unchanged) ---
 
-        /**
-         * Toggles the visibility of the cart modal.
-         * @param {boolean} show - True to show, false to hide.
-         */
         function toggleCartModal(show) {
             const modalContent = cartModal.querySelector('div:not([onclick])');
 
@@ -409,7 +500,7 @@
                     cartModal.classList.add('opacity-100', 'flex');
                     modalContent.classList.remove('scale-95', 'opacity-0');
                     modalContent.classList.add('scale-100', 'opacity-100');
-                }, 10); // Small delay for transition to work
+                }, 10);
             } else {
                 modalContent.classList.remove('scale-100', 'opacity-100');
                 modalContent.classList.add('scale-95', 'opacity-0');
@@ -419,34 +510,123 @@
                 }, 300);
             }
         }
+        
+        // --- NEW: QUICK VIEW MODAL LOGIC ---
+        
+        /**
+         * Populates and displays the Quick View modal.
+         * @param {number} bookId - The ID of the book to view.
+         */
+        function openQuickViewModal(bookId) {
+            const book = BOOKS_DATA.find(b => b.id === bookId);
+            if (!book) return;
 
-        // --- SEARCH/FILTER LOGIC ---
+            // Populate the modal content
+            document.getElementById('qvTitle').textContent = book.title;
+            document.getElementById('qvAuthor').textContent = `by ${book.author}`;
+            document.getElementById('qvPrice').textContent = formatCurrency(book.price);
+            document.getElementById('qvCategory').textContent = book.category;
+            document.getElementById('qvRating').innerHTML = renderRatingStars(book.rating);
+            document.getElementById('qvDescription').textContent = book.description;
+            document.getElementById('qvImage').src = book.imageUrl;
+            document.getElementById('qvImage').alt = book.title;
+            
+            // Set the ID on the Add to Cart button for functionality
+            document.getElementById('qvAddToCartButton').onclick = () => {
+                addToCart(book.id);
+                // Optionally close modal after adding
+                closeQuickViewModal();
+            };
+
+            // Display the modal
+            const modal = document.getElementById('quickViewModal');
+            const modalContent = modal.querySelector('div:not([onclick])');
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.add('opacity-100', 'flex');
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            
+            lucide.createIcons();
+        }
 
         /**
-         * Filters the books based on the text input from search bars.
+         * Closes the Quick View modal.
          */
-        function filterBooks() {
-            // Check both search inputs for the current value
-            const searchInput = document.getElementById('searchInput').value.toLowerCase();
-            const mobileSearchInput = document.getElementById('mobileSearchInput').value.toLowerCase();
-            const query = searchInput || mobileSearchInput;
+        function closeQuickViewModal() {
+            const modal = document.getElementById('quickViewModal');
+            const modalContent = modal.querySelector('div:not([onclick])');
 
-            const filteredBooks = BOOKS_DATA.filter(book =>
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.remove('opacity-100', 'flex');
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // --- NEW: SEARCH, FILTER, AND SORT LOGIC ---
+
+        /**
+         * Applies search, category filter, and sorting to the book list and renders the result.
+         */
+        function updateBookDisplay() {
+            // 1. Get current query from whichever input is active
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const query = searchInput || document.getElementById('mobileSearchInput').value.toLowerCase();
+
+            // 2. Get current category and sort settings
+            const currentCategory = document.getElementById('categoryFilter').value;
+            const currentSort = document.getElementById('sortSelect').value;
+
+            let filteredBooks = BOOKS_DATA;
+
+            // --- 2.1 FILTERING ---
+            // Apply search query filter
+            filteredBooks = filteredBooks.filter(book =>
                 book.title.toLowerCase().includes(query) ||
                 book.author.toLowerCase().includes(query) ||
                 book.category.toLowerCase().includes(query)
             );
 
+            // Apply category filter
+            if (currentCategory !== 'all') {
+                filteredBooks = filteredBooks.filter(book => book.category === currentCategory);
+            }
+
+            // --- 2.2 SORTING ---
+            if (currentSort !== 'default') {
+                filteredBooks.sort((a, b) => {
+                    if (currentSort === 'price-asc') {
+                        return a.price - b.price;
+                    }
+                    if (currentSort === 'price-desc') {
+                        return b.price - a.price;
+                    }
+                    if (currentSort === 'title-asc') {
+                        return a.title.localeCompare(b.title);
+                    }
+                    if (currentSort === 'rating-desc') {
+                        return b.rating - a.rating;
+                    }
+                    return 0; // Maintain current order if sort type is unrecognized
+                });
+            }
+
             renderBookGrid(filteredBooks);
         }
 
         /**
-         * Clears the search input and resets the book grid.
+         * Clears all filters (search, category, and sort) and resets the book grid.
          */
         function clearSearch() {
             document.getElementById('searchInput').value = '';
             document.getElementById('mobileSearchInput').value = '';
-            filterBooks();
+            document.getElementById('categoryFilter').value = 'all';
+            document.getElementById('sortSelect').value = 'default';
+            updateBookDisplay();
         }
     </script>
 
